@@ -48,13 +48,19 @@ def find_shortest_path(starting_room, visited):
                     new_path.append((neighbor, direction))
                     queue.enqueue(new_path)
 
+def check_room(cur_room):
+    unexplored = ''
+    for k, v in cur_room.items():
+                if v == '?':
+                    unexplored += k
+    return unexplored
 def traverse_map():
     stack = Stack()
     stack.push(player.current_room)
     visited = {}
     random_direction = None
     prev_room = None
-    while len(visited) <= len(room_graph):
+    while len(visited) < len(room_graph):
         cur = stack.pop()
         # Add current room to our adjacency list if it's not there
         if cur.id not in visited:
@@ -63,11 +69,8 @@ def traverse_map():
                 visited[cur.id][d] = '?'
         # Starts traversing a random direction
         if random_direction is None:
-            available = ''
-            for d in visited[cur.id]:
-                if visited[cur.id][d] == '?':
-                    available += d
-                random_direction = random.choice(available)
+            unexplored = check_room(visited[cur.id])
+            random_direction = random.choice(unexplored)
         # Add a 'step' to our traversal list
         # Updates our adjacency list edges based on the previous move (excludes adding on start up)
         if prev_room is not None:
@@ -80,12 +83,14 @@ def traverse_map():
             if random_direction in visited[prev_room.id] and prev_dir in visited[cur.id]:
                 visited[prev_room.id][random_direction] = cur.id
                 visited[cur.id][prev_dir] = prev_room.id
+        # Change direction if the next room is visited. Note: seems to save about 0.1%
+        if random_direction in visited[cur.id] and visited[cur.id][random_direction] != '?':
+            unexplored = check_room(visited[cur.id])
+            if len(unexplored) > 0:
+                random_direction = random.choice(unexplored)
         # If we hit a end point for our current direction
         if random_direction not in visited[cur.id]:
-            unexplored = ''
-            for k, v in visited[cur.id].items():
-                if v == '?':
-                    unexplored += k
+            unexplored = check_room(visited[cur.id])
             if len(unexplored) == 0:
                 path = find_shortest_path(cur, visited)
                 if path is None:
@@ -94,10 +99,7 @@ def traverse_map():
                 for move in path[1:]:
                     traversal_path.append(move[1])
                     player.travel(move[1])
-                unexplored = ''
-                for k, v in visited[new_room].items():
-                    if v == '?':
-                        unexplored += k
+                unexplored = check_room(visited[new_room])
             random_direction = random.choice(unexplored)
         # Updates our previous room
         traversal_path.append(random_direction)
@@ -107,7 +109,22 @@ def traverse_map():
         # Adds it to our Stack for new interation cycle
         stack.push(player.current_room)
 traverse_map()
-
+# print(traversal_path)
+# print(len(traversal_path))
+# avg = 0
+# min_path = 0
+# max_path = 0
+# for i in range(1000):
+#     traverse_map()
+#     avg += len(traversal_path)
+#     if min_path == 0:
+#         min_path = len(traversal_path)
+#     if min_path > len(traversal_path):
+#         min_path = len(traversal_path)
+#     if max_path < len(traversal_path):
+#         max_path = len(traversal_path)
+#     traversal_path = []
+# print(avg / 1000, min_path, max_path)
 # TRAVERSAL TEST
 visited_rooms = set()
 player.current_room = world.starting_room
