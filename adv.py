@@ -12,10 +12,10 @@ world = World()
 
 # You may uncomment the smaller graphs for development and testing purposes.
 # map_file = "maps/test_line.txt"
-map_file = "maps/test_cross.txt"
+# map_file = "maps/test_cross.txt"
 # map_file = "maps/test_loop.txt"
 # map_file = "maps/test_loop_fork.txt"
-# map_file = "maps/main_maze.txt"
+map_file = "maps/main_maze.txt"
 
 # Loads the map into a dictionary
 room_graph=literal_eval(open(map_file, "r").read())
@@ -33,34 +33,28 @@ traversal_path = []
 def find_shortest_path(starting_room, visited):
     queue = Queue()
     queue.enqueue([(starting_room.id, "")])
-    print('id: ', starting_room.id, 'visited: ', visited)
     visited_set = set()
     while queue.size() > 0:
-        print(visited_set)
         path = queue.dequeue()
         vertex = path[-1][0]
         for k, v in visited[vertex].items():
-            print('path in the for: ', path, 'v: ', v)
-            if v is '?':
-                print('path in the if: ', path)
+            if v == '?':
                 return path
         if vertex not in visited_set:
             visited_set.add(vertex)
             for direction, neighbor in visited[vertex].items():
-                new_path = list(path)
-                new_path.append((neighbor, direction))
-                queue.enqueue(new_path)
-
+                if neighbor not in visited_set:
+                    new_path = list(path)
+                    new_path.append((neighbor, direction))
+                    queue.enqueue(new_path)
 
 def traverse_map():
     stack = Stack()
     stack.push(player.current_room)
     visited = {}
     random_direction = None
-    # random_direction = 'n'
-    # print(random_direction)
     prev_room = None
-    while len(visited) < len(room_graph): # len(room_graph)
+    while len(visited) <= len(room_graph):
         cur = stack.pop()
         # Add current room to our adjacency list if it's not there
         if cur.id not in visited:
@@ -75,7 +69,6 @@ def traverse_map():
                     available += d
                 random_direction = random.choice(available)
         # Add a 'step' to our traversal list
-        traversal_path.append(random_direction)
         # Updates our adjacency list edges based on the previous move (excludes adding on start up)
         if prev_room is not None:
             prev_dir = ''
@@ -88,49 +81,31 @@ def traverse_map():
                 visited[prev_room.id][random_direction] = cur.id
                 visited[cur.id][prev_dir] = prev_room.id
         # If we hit a end point for our current direction
-        # print(visited)
         if random_direction not in visited[cur.id]:
-            # print('id', cur.id)
-            # print('direction', random_direction)
-            prev_rand = random_direction
             unexplored = ''
             for k, v in visited[cur.id].items():
                 if v == '?':
                     unexplored += k
-            # print('string1: ', unexplored)
             if len(unexplored) == 0:
                 path = find_shortest_path(cur, visited)
-                # print('path: ', path)
                 if path is None:
                     return
                 new_room = path[-1][0]
-                # print('new room: ', visited[new_room], 'path: ', path)
                 for move in path[1:]:
                     traversal_path.append(move[1])
                     player.travel(move[1])
-                    print('id', cur.id)
-                    print('direction', random_direction)
-                    # print(player.current_room)
                 unexplored = ''
                 for k, v in visited[new_room].items():
                     if v == '?':
-                        print(k, '||', v)
                         unexplored += k
-                # print('string2: ', unexplored)
-                while random_direction is prev_rand:
-                    random_direction = random.choice(unexplored)
-                # print('new direction: ', random_direction)
-            else:
-                while random_direction is prev_rand:
-                    random_direction = random.choice(unexplored)
-        # else:
+            random_direction = random.choice(unexplored)
         # Updates our previous room
-        prev_room = cur
+        traversal_path.append(random_direction)
+        prev_room = player.current_room
         # Moves our current room in 'x' direction
         player.travel(random_direction)
         # Adds it to our Stack for new interation cycle
         stack.push(player.current_room)
-    print(traversal_path)
 traverse_map()
 
 # TRAVERSAL TEST
@@ -163,7 +138,3 @@ else:
 #     else:
 #         print("I did not understand that command.")
 
-test_obj = {0: {'n': 1, 's': '?', 'w': '?', 'e': '?'}, 1: {'n': 2, 's': 0}, 2: {'s': 1}}
-
-for k, v in test_obj[0].items():
-    print(v)
